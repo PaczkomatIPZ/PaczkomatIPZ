@@ -1,0 +1,33 @@
+CREATE TABLE `orders` (
+  `box_id` int,
+  `order_name` varchar(255),
+  `created_at` timestamp,
+  `receiver_id` int,
+  `sender_id` int
+);
+
+CREATE TABLE `box_locker` (
+  `id` int PRIMARY KEY,
+  `adress` varchar(255)
+);
+
+CREATE TABLE `users` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `name` varchar(255)
+);
+
+CREATE TABLE `box` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `occupy` bool,
+  `pass` varchar(255),
+  `size` varchar(255),
+  `box_locker_id` int
+);
+
+ALTER TABLE `orders` ADD FOREIGN KEY (`receiver_id`) REFERENCES `users` (`id`);
+
+ALTER TABLE `orders` ADD FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`);
+
+ALTER TABLE `orders` ADD FOREIGN KEY (`box_id`) REFERENCES `box` (`id`);
+
+ALTER TABLE `box` ADD FOREIGN KEY (`box_locker_id`) REFERENCES `box_locker` (`id`);
