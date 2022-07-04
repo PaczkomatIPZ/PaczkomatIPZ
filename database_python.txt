@@ -1,0 +1,88 @@
+from flask import Flask, redirect, render_template, request, jsonify, abort, flash
+from flask_sqlalchemy import SQLAlchemy
+from wtforms import TextField, IntegerField, TextAreaField, SubmitField, RadioField, SelectField
+from sqlalchemy import desc ,asc
+from flask_marshmallow import Marshmallow
+from marshmallow import Schema, fields, pprint
+from datetime import datetime, timedelta
+import  os
+from os.path import isfile, join
+from os import listdir
+import json
+from io import StringIO
+from werkzeug.wrappers import Response
+import itertools
+import random
+import string
+
+
+app = Flask(__name__)
+app.secret_key = 'development key'
+
+SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}".format(
+    username="tarnasivo",
+    password="alamakota", # database password hidden
+    hostname="tarnasivo.mysql.pythonanywhere-services.com",
+    databasename="tarnasivo$paczkomat",
+)
+app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
+app.config["SQLALCHEMY_POOL_RECYCLE"] = 299 # connection timeouts
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False # no warning disruptions
+
+db = SQLAlchemy(app)
+ma = Marshmallow(app)
+
+class Orders(db.Model):
+
+    __tablename__ = "orders"
+    box_id = db.Column(db.Integer)
+    order_name = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DATETIME)
+    receiver_id = db.Column(db.Integer)
+    sender_id = db.Column(db.Integer)
+
+
+    def __init__(self, box_id, created_at, receiver_id, sender_id):
+        self.box_id = box_id
+        self.created_at = created_at
+        self.receiver_id = receiver_id
+        self.sender_id = sender_id
+
+class OrdersSchema(ma.Schema):
+    class Meta:
+        # Fields to expose
+        fields = ('box_id' ,'order_name', 'created_at','receiver_id', 'sender_id')
+
+
+order_schema = OrdersSchema()
+orders_schema = OrdersSchema(many=True)
+
+@app.route("/orders", methods=["GET"])
+def get_all_orders():
+    order_many = Orders.query.all()
+    result = order_schema.dump(order_many)
+    return jsonify(result)
+
+@app.route("/order/<id>", methods=["GET"])
+def get_all_order(id):
+    order = Orders.query.get(id)
+    result = order_schema.dump(order)
+    return jsonify(result)
+
+@app.route("/orders", methods=["POST"])
+def add_user():
+    sender= request.json["sender_id"]
+    receiver= request.json["receiver_id"]
+    box= request.json["box_id"]
+    new_order = Orders(box, datetime.now(), receiver, sender)
+    db.session.add(new_order)
+    db.session.commit()  # PK increment
+    order = Orders.query.get(new_order.id)
+    return order_schema.jsonify(user)
+
+
+@app.route("/web/orders", methods=["GET"])
+def get_orders_nasz():
+    all_orders= Orders.query.orderby(Orders.created_at).all()
+    result = orders_schema.dump(all_orders)
+    return render_template('strona.html', title='PaczkomatIPZ', orders=result)
